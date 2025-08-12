@@ -1,0 +1,53 @@
+# Maven build folder
+/target/
+
+# Build folders (em caso de builds alternativos)
+/build/
+
+# Logs
+*.log
+
+# Compiled class files
+*.class
+
+# JAR/WAR/EAR files
+*.jar
+*.war
+*.ear
+
+# Maven Wrapper JAR
+.mvn/wrapper/maven-wrapper.jar
+
+# Eclipse, Spring Tool Suite (STS)
+/.apt_generated
+/.classpath
+/.factorypath
+/.project
+/.settings/
+/.springBeans
+/.sts4-cache/
+
+# IntelliJ IDEA
+/.idea/
+/*.iml
+/*.iws
+/*.ipr
+
+# NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# VS Code
+/.vscode/
+
+# Environment variables files
+.env
+
+# Docker files
+/docker-compose.override.yml
+
+# Others
+.DS_Store
