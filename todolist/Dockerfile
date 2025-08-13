@@ -7,6 +7,7 @@ RUN ./mvnw clean install -DskipTests
 # Estágio de execução
 FROM eclipse-temurin:17-jdk-alpine
 WORKDIR /app
+COPY .env .env
 COPY --from=build /app/target/*.jar api.jar
 EXPOSE 8080
 CMD ["java", "-jar", "api.jar"]
