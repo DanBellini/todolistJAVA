@@ -2,6 +2,7 @@ package com.todolist.api.controllers;
 
 import com.todolist.api.dtos.TaskDto;
 import com.todolist.api.dtos.responses.TaskResponseDto;
+import com.todolist.api.dtos.status.TaskStatusDto;
 import com.todolist.api.enums.PriorityEnum;
 import com.todolist.api.enums.StatusEnum;
 import com.todolist.api.models.TaskModel;
@@ -78,5 +79,23 @@ public class TaskController {
                 .toList();
 
         return ResponseEntity.ok(taskResponseDtos);
+    }
+
+    @PutMapping("/{taskId}/status")
+    public ResponseEntity<TaskResponseDto> updateTaskStatus(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long taskId,
+            @RequestBody @Valid TaskStatusDto taskStatusDto) {
+
+        String token = authorizationHeader.replace("Bearer ", "");
+
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        TaskModel updatedTask = taskService.updateStatus(taskId, taskStatusDto.getStatus());
+        TaskResponseDto responseDto = new TaskResponseDto(updatedTask);
+        
+        return ResponseEntity.ok(responseDto);
     }
 }

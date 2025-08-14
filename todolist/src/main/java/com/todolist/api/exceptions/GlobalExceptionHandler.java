@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.todolist.api.enums.PriorityEnum;
 import com.todolist.api.enums.StatusEnum;
+import com.todolist.api.exceptions.subtask_error.SubtaskNotFoundException;
 import com.todolist.api.exceptions.task_error.TaskNotFoundException;
 import com.todolist.api.exceptions.user_error.UserConflictException;
 import com.todolist.api.exceptions.user_error.UserNotFoundException;
@@ -89,9 +90,19 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handlerUserNotFound(UserNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
     }
+    
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<String> handleIllegalArgumentException(IllegalArgumentException exception) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(exception.getMessage());
+    }
 
-        @ExceptionHandler({TaskNotFoundException.class})
+    @ExceptionHandler({TaskNotFoundException.class})
     public ResponseEntity<String> handlerTaskNotFound(TaskNotFoundException exception) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
+    }
+
+    @ExceptionHandler({SubtaskNotFoundException.class})
+    public ResponseEntity<String> handlerSubtaskNotFound(SubtaskNotFoundException exception) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(exception.getMessage());
     }
 }

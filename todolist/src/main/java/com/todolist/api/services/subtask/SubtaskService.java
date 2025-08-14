@@ -1,6 +1,8 @@
 package com.todolist.api.services.subtask;
 
 import com.todolist.api.dtos.SubtaskDto;
+import com.todolist.api.enums.StatusEnum;
+import com.todolist.api.exceptions.subtask_error.SubtaskNotFoundException;
 import com.todolist.api.exceptions.task_error.TaskNotFoundException;
 import com.todolist.api.models.SubtaskModel;
 import com.todolist.api.models.TaskModel;
@@ -31,6 +33,14 @@ public class SubtaskService {
         SubtaskModel subtask = new SubtaskModel(subtaskDto, task);
         
         // Salva a subtask no banco de dados
+        return subtaskRepository.save(subtask);
+    }
+    public SubtaskModel updateStatus(Long subtaskId, StatusEnum newStatus) {
+        SubtaskModel subtask = subtaskRepository.findById(subtaskId)
+                .orElseThrow(() -> new SubtaskNotFoundException("Subtask not found with ID: " + subtaskId));
+        
+        subtask.setStatus(newStatus);
+
         return subtaskRepository.save(subtask);
     }
 }

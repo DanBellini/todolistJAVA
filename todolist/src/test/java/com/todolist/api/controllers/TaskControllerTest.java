@@ -2,6 +2,8 @@ package com.todolist.api.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todolist.api.dtos.TaskDto;
+import com.todolist.api.dtos.status.SubtaskStatusDto;
+import com.todolist.api.dtos.status.TaskStatusDto;
 import com.todolist.api.enums.PriorityEnum;
 import com.todolist.api.enums.StatusEnum;
 import com.todolist.api.models.SubtaskModel;
@@ -10,6 +12,7 @@ import com.todolist.api.models.UserModel;
 import com.todolist.api.security.JwtUtil;
 import com.todolist.api.security.SecurityTestConfig;
 import com.todolist.api.services.UserService;
+import com.todolist.api.services.subtask.SubtaskService;
 import com.todolist.api.services.task.TaskService;
 import lombok.RequiredArgsConstructor;
 import org.junit.jupiter.api.Test;
@@ -23,14 +26,12 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.LocalDate;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(TaskController.class)
+@WebMvcTest({TaskController.class, SubtaskController.class}) // CORREÇÃO: Incluindo SubtaskController.class
 @Import(SecurityTestConfig.class)
 @RequiredArgsConstructor
 class TaskControllerTest {
@@ -52,6 +53,11 @@ class TaskControllerTest {
     @SuppressWarnings("removal")
     @MockBean
     private TaskService taskService;
+    
+    // NOVO: Mock para o SubtaskService, necessário para os novos testes
+    @SuppressWarnings("removal")
+    @MockBean
+    private SubtaskService subtaskService;
 
     @Test
     void whenValidToken_thenCreateTaskSuccessfully() throws Exception {
@@ -135,7 +141,6 @@ class TaskControllerTest {
         verify(taskService, never()).findAllByUser(any(UserModel.class));
     }
     
-    // --- NOVO TESTE para o caso onde não há filtros ---
     @Test
     void whenValidToken_thenGetAllTasksSuccessfully() throws Exception {
         // Mock data
@@ -171,7 +176,6 @@ class TaskControllerTest {
         when(jwtUtil.getUsernameFromToken(anyString())).thenReturn(mockUsername);
         when(userService.findByUsername(mockUsername)).thenReturn(mockUser);
         
-        // ATENÇÃO: AQUI ESTÁ A MUDANÇA
         // Mockamos o findByUserWithFilters para o caso de não haver filtros (parâmetros null)
         when(taskService.findByUserWithFilters(
                 any(UserModel.class),
@@ -192,13 +196,109 @@ class TaskControllerTest {
 
         // Verificação: Garante que os métodos de serviço foram chamados
         verify(jwtUtil, times(1)).validateToken("valid_token");
-        // ATENÇÃO: AQUI ESTÁ A MUDANÇA
-        // Verifica se o método correto foi chamado
         verify(taskService, times(1)).findByUserWithFilters(
                 any(UserModel.class),
                 isNull(),
                 isNull(),
                 isNull()
         );
+    }
+    
+    // --- Novos testes para a funcionalidade de atualização de status ---
+
+     @Test
+    void whenUpdateTaskStatusToCompletedAndHasIncompleteSubtasks_thenReturnsBadRequest() throws Exception {
+        // Dados simulados
+        String mockToken = "Bearer valid_token";
+        String mockUsername = "daniel";
+        TaskStatusDto taskStatusDto = new TaskStatusDto(StatusEnum.CONCLUIDA);
+        
+        // Mock do usuário para a validação
+        UserModel mockUser = new UserModel(1L, mockUsername, "password"); // NOVO: mock de user
+        when(jwtUtil.validateToken(anyString())).thenReturn(true);
+        when(jwtUtil.getUsernameFromToken(anyString())).thenReturn(mockUsername);
+        when(userService.findByUsername(mockUsername)).thenReturn(mockUser);
+
+        // Mocka o serviço para lançar a exceção da regra de negócio
+        when(taskService.updateStatus(anyLong(), eq(StatusEnum.CONCLUIDA)))
+            .thenThrow(new IllegalArgumentException("Cannot complete a task with incomplete subtasks."));
+
+        // Simulação da requisição PUT e verificação do status
+        mockMvc.perform(put("/tasks/{taskId}/status", 1L)
+                        .header("Authorization", mockToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskStatusDto)))
+                .andExpect(status().isBadRequest());
+
+        // Verificação: O método do serviço foi chamado
+        verify(taskService, times(1)).updateStatus(anyLong(), eq(StatusEnum.CONCLUIDA));
+    }
+
+    @Test
+    void whenUpdateTaskStatusToCompletedAndAllSubtasksAreCompleted_thenReturnsOk() throws Exception {
+        // Dados simulados
+        String mockToken = "Bearer valid_token";
+        String mockUsername = "daniel";
+        TaskStatusDto taskStatusDto = new TaskStatusDto(StatusEnum.CONCLUIDA);
+        
+        // Mock do usuário para a validação
+        UserModel mockUser = new UserModel(1L, mockUsername, "password"); // NOVO: mock de user
+        when(jwtUtil.validateToken(anyString())).thenReturn(true);
+        when(jwtUtil.getUsernameFromToken(anyString())).thenReturn(mockUsername);
+        when(userService.findByUsername(mockUsername)).thenReturn(mockUser);
+        
+        // Mocka a TaskModel que seria retornada pelo serviço
+        TaskModel mockTask = new TaskModel();
+        mockTask.setId(1L);
+        mockTask.setStatus(StatusEnum.CONCLUIDA);
+        mockTask.setUser(mockUser); // CORREÇÃO: Adicionando o usuário à task mockada.
+
+        // Mocka o serviço para retornar a task atualizada
+        when(taskService.updateStatus(anyLong(), eq(StatusEnum.CONCLUIDA))).thenReturn(mockTask);
+
+        // Simulação da requisição PUT e verificação da resposta
+        mockMvc.perform(put("/tasks/{taskId}/status", 1L)
+                        .header("Authorization", mockToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(taskStatusDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(1L))
+                .andExpect(jsonPath("$.status").value("CONCLUIDA"));
+
+        // Verificação: O método do serviço foi chamado
+        verify(taskService, times(1)).updateStatus(anyLong(), eq(StatusEnum.CONCLUIDA));
+    }
+
+    @Test
+    void whenUpdateSubtaskStatus_thenReturnsOk() throws Exception {
+        // Dados simulados
+        String mockToken = "Bearer valid_token";
+        String mockUsername = "daniel"; // NOVO: mock de username
+        SubtaskStatusDto subtaskStatusDto = new SubtaskStatusDto(StatusEnum.CONCLUIDA);
+        
+        // CORREÇÃO: Mocks do JWT e User
+        when(jwtUtil.validateToken(anyString())).thenReturn(true);
+        when(jwtUtil.getUsernameFromToken(anyString())).thenReturn(mockUsername);
+        when(userService.findByUsername(mockUsername)).thenReturn(new UserModel(1L, mockUsername, "password"));
+        
+        // Mocka a SubtaskModel que seria retornada pelo serviço
+        SubtaskModel mockSubtask = new SubtaskModel();
+        mockSubtask.setId(10L);
+        mockSubtask.setStatus(StatusEnum.CONCLUIDA);
+
+        // Mocka o serviço de subtask para retornar a subtask atualizada
+        when(subtaskService.updateStatus(anyLong(), eq(StatusEnum.CONCLUIDA))).thenReturn(mockSubtask);
+
+        // Simulação da requisição PUT e verificação da resposta
+        mockMvc.perform(put("/subtasks/{subtaskId}/status", 10L)
+                        .header("Authorization", mockToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(subtaskStatusDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(10L))
+                .andExpect(jsonPath("$.status").value("CONCLUIDA"));
+
+        // Verificação: O método do serviço de subtask foi chamado
+        verify(subtaskService, times(1)).updateStatus(anyLong(), eq(StatusEnum.CONCLUIDA));
     }
 }

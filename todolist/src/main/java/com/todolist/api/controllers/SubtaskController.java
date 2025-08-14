@@ -2,6 +2,7 @@ package com.todolist.api.controllers;
 
 import com.todolist.api.dtos.SubtaskDto;
 import com.todolist.api.dtos.responses.SubtaskResponseDto;
+import com.todolist.api.dtos.status.SubtaskStatusDto;
 import com.todolist.api.models.SubtaskModel;
 import com.todolist.api.models.UserModel;
 import com.todolist.api.security.JwtUtil;
@@ -49,5 +50,23 @@ public class SubtaskController {
         SubtaskResponseDto responseDto = new SubtaskResponseDto(createdSubtask);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto); // Retorne o DTO
+    }
+
+    @PutMapping("/{subtaskId}/status")
+    public ResponseEntity<SubtaskResponseDto> updateSubtaskStatus(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @PathVariable Long subtaskId,
+            @RequestBody @Valid SubtaskStatusDto subtaskStatusDto) {
+
+        String token = authorizationHeader.replace("Bearer ", "");
+
+        if (!jwtUtil.validateToken(token)) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        SubtaskModel updatedSubtask = subtaskService.updateStatus(subtaskId, subtaskStatusDto.getStatus());
+        SubtaskResponseDto responseDto = new SubtaskResponseDto(updatedSubtask);
+
+        return ResponseEntity.ok(responseDto);
     }
 }
