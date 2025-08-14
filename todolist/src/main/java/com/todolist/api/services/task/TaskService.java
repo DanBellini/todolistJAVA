@@ -44,9 +44,6 @@ public class TaskService {
         // Chama o método do repositório que lida com a lógica de filtros nulos
         return taskRepository.findByUserWithFilters(user, status, priority, expirationDate);
     }
-    // Em com.todolist.api.services.task.TaskService
-
-// ... (métodos save, findAllByUser, findByUserWithFilters, etc.)
 
     public TaskModel updateStatus(Long taskId, StatusEnum newStatus) {
         TaskModel task = taskRepository.findById(taskId)
@@ -71,5 +68,13 @@ public class TaskService {
         task.setStatus(newStatus);
 
         return taskRepository.save(task);
+    }
+    
+    // NOVO: Método para deletar uma task e suas subtasks
+    public void delete(Long id) {
+        if (!taskRepository.existsById(id)) {
+            throw new TaskNotFoundException("Task not found with ID: " + id);
+        }
+        taskRepository.deleteById(id);
     }
 }

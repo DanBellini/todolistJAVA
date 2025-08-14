@@ -6,6 +6,7 @@ import com.todolist.api.dtos.status.SubtaskStatusDto;
 import com.todolist.api.dtos.status.TaskStatusDto;
 import com.todolist.api.enums.PriorityEnum;
 import com.todolist.api.enums.StatusEnum;
+import com.todolist.api.exceptions.task_error.TaskNotFoundException;
 import com.todolist.api.models.SubtaskModel;
 import com.todolist.api.models.TaskModel;
 import com.todolist.api.models.UserModel;
@@ -15,6 +16,7 @@ import com.todolist.api.services.UserService;
 import com.todolist.api.services.subtask.SubtaskService;
 import com.todolist.api.services.task.TaskService;
 import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -31,7 +33,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest({TaskController.class, SubtaskController.class}) // CORREÇÃO: Incluindo SubtaskController.class
+@WebMvcTest({TaskController.class, SubtaskController.class})
 @Import(SecurityTestConfig.class)
 @RequiredArgsConstructor
 class TaskControllerTest {
@@ -54,7 +56,6 @@ class TaskControllerTest {
     @MockBean
     private TaskService taskService;
     
-    // NOVO: Mock para o SubtaskService, necessário para os novos testes
     @SuppressWarnings("removal")
     @MockBean
     private SubtaskService subtaskService;
@@ -207,6 +208,7 @@ class TaskControllerTest {
     // --- Novos testes para a funcionalidade de atualização de status ---
 
      @Test
+    @DisplayName("Deve retornar 400 Bad Request ao tentar completar uma tarefa com subtasks incompletas")
     void whenUpdateTaskStatusToCompletedAndHasIncompleteSubtasks_thenReturnsBadRequest() throws Exception {
         // Dados simulados
         String mockToken = "Bearer valid_token";
@@ -214,7 +216,7 @@ class TaskControllerTest {
         TaskStatusDto taskStatusDto = new TaskStatusDto(StatusEnum.CONCLUIDA);
         
         // Mock do usuário para a validação
-        UserModel mockUser = new UserModel(1L, mockUsername, "password"); // NOVO: mock de user
+        UserModel mockUser = new UserModel(1L, mockUsername, "password");
         when(jwtUtil.validateToken(anyString())).thenReturn(true);
         when(jwtUtil.getUsernameFromToken(anyString())).thenReturn(mockUsername);
         when(userService.findByUsername(mockUsername)).thenReturn(mockUser);
@@ -235,6 +237,7 @@ class TaskControllerTest {
     }
 
     @Test
+    @DisplayName("Deve retornar 200 OK ao completar uma tarefa com todas as subtasks completas")
     void whenUpdateTaskStatusToCompletedAndAllSubtasksAreCompleted_thenReturnsOk() throws Exception {
         // Dados simulados
         String mockToken = "Bearer valid_token";
@@ -242,7 +245,7 @@ class TaskControllerTest {
         TaskStatusDto taskStatusDto = new TaskStatusDto(StatusEnum.CONCLUIDA);
         
         // Mock do usuário para a validação
-        UserModel mockUser = new UserModel(1L, mockUsername, "password"); // NOVO: mock de user
+        UserModel mockUser = new UserModel(1L, mockUsername, "password");
         when(jwtUtil.validateToken(anyString())).thenReturn(true);
         when(jwtUtil.getUsernameFromToken(anyString())).thenReturn(mockUsername);
         when(userService.findByUsername(mockUsername)).thenReturn(mockUser);
@@ -251,7 +254,7 @@ class TaskControllerTest {
         TaskModel mockTask = new TaskModel();
         mockTask.setId(1L);
         mockTask.setStatus(StatusEnum.CONCLUIDA);
-        mockTask.setUser(mockUser); // CORREÇÃO: Adicionando o usuário à task mockada.
+        mockTask.setUser(mockUser);
 
         // Mocka o serviço para retornar a task atualizada
         when(taskService.updateStatus(anyLong(), eq(StatusEnum.CONCLUIDA))).thenReturn(mockTask);
@@ -270,13 +273,14 @@ class TaskControllerTest {
     }
 
     @Test
+    @DisplayName("Deve retornar 200 OK ao atualizar o status de uma subtask")
     void whenUpdateSubtaskStatus_thenReturnsOk() throws Exception {
         // Dados simulados
         String mockToken = "Bearer valid_token";
-        String mockUsername = "daniel"; // NOVO: mock de username
+        String mockUsername = "daniel";
         SubtaskStatusDto subtaskStatusDto = new SubtaskStatusDto(StatusEnum.CONCLUIDA);
         
-        // CORREÇÃO: Mocks do JWT e User
+        // Mocks do JWT e User
         when(jwtUtil.validateToken(anyString())).thenReturn(true);
         when(jwtUtil.getUsernameFromToken(anyString())).thenReturn(mockUsername);
         when(userService.findByUsername(mockUsername)).thenReturn(new UserModel(1L, mockUsername, "password"));
@@ -300,5 +304,38 @@ class TaskControllerTest {
 
         // Verificação: O método do serviço de subtask foi chamado
         verify(subtaskService, times(1)).updateStatus(anyLong(), eq(StatusEnum.CONCLUIDA));
+    }
+
+    // --- NOVOS TESTES PARA A ROTA DE DELEÇÃO DE TASKS ---
+
+    @Test
+    @DisplayName("Deve retornar 204 No Content ao deletar uma tarefa existente")
+    void whenDeleteTask_thenReturnsNoContent() throws Exception {
+        Long taskId = 1L;
+
+        // Mocka o serviço para não fazer nada quando o método 'delete' for chamado
+        doNothing().when(taskService).delete(taskId);
+
+        mockMvc.perform(delete("/tasks/{taskId}", taskId))
+                .andExpect(status().isNoContent());
+
+        // Verifica se o método 'delete' do serviço foi chamado exatamente uma vez com o ID correto
+        verify(taskService, times(1)).delete(taskId);
+    }
+
+    @Test
+    @DisplayName("Deve retornar 404 Not Found ao tentar deletar uma tarefa inexistente")
+    void whenDeleteNonExistentTask_thenReturnsNotFound() throws Exception {
+        Long nonExistentTaskId = 999L;
+
+        // Mocka o serviço para lançar uma exceção de TaskNotFoundException
+        doThrow(new TaskNotFoundException("Task not found with ID: " + nonExistentTaskId))
+                .when(taskService).delete(nonExistentTaskId);
+
+        mockMvc.perform(delete("/tasks/{taskId}", nonExistentTaskId))
+                .andExpect(status().isNotFound());
+
+        // Verifica se o método 'delete' do serviço foi chamado
+        verify(taskService, times(1)).delete(nonExistentTaskId);
     }
 }

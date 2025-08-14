@@ -43,4 +43,11 @@ public class SubtaskService {
 
         return subtaskRepository.save(subtask);
     }
+
+    public void delete(Long id) {
+        if (!subtaskRepository.existsById(id)) {
+            throw new SubtaskNotFoundException("Subtask not found with ID: " + id);
+        }
+        subtaskRepository.deleteById(id);
+    }
 }
