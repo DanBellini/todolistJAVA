@@ -1,12 +1,15 @@
 package com.todolist.api.services.task;
 
 import com.todolist.api.dtos.TaskDto;
+import com.todolist.api.enums.PriorityEnum;
+import com.todolist.api.enums.StatusEnum;
 import com.todolist.api.models.TaskModel;
 import com.todolist.api.models.UserModel;
 import com.todolist.api.repositories.TaskRepository;
 
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.stereotype.Service;
@@ -25,13 +28,19 @@ public class TaskService {
         return taskRepository.save(newTask);
     }
     
-    // Método para buscar todas as tarefas
-    public List<TaskModel> findAll() {
-        return taskRepository.findAll();
-    }
-    
-    //Método para buscar todas as tarefas de um usuário específico
+    // Método para buscar todas as tarefas de um usuário específico
     public List<TaskModel> findAllByUser(UserModel user) {
         return taskRepository.findByUser(user);
+    }
+    
+    // Novo método para buscar tarefas com filtros
+    public List<TaskModel> findByUserWithFilters(
+        UserModel user,
+        StatusEnum status,
+        PriorityEnum priority,
+        LocalDate expirationDate
+    ) {
+        // Chama o método do repositório que lida com a lógica de filtros nulos
+        return taskRepository.findByUserWithFilters(user, status, priority, expirationDate);
     }
 }

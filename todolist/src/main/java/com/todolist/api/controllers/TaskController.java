@@ -2,6 +2,8 @@ package com.todolist.api.controllers;
 
 import com.todolist.api.dtos.TaskDto;
 import com.todolist.api.dtos.responses.TaskResponseDto;
+import com.todolist.api.enums.PriorityEnum;
+import com.todolist.api.enums.StatusEnum;
 import com.todolist.api.models.TaskModel;
 import com.todolist.api.models.UserModel;
 import com.todolist.api.security.JwtUtil;
@@ -10,6 +12,7 @@ import com.todolist.api.services.task.TaskService;
 
 import jakarta.validation.Valid;
 
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -40,21 +43,26 @@ public class TaskController {
         if (!jwtUtil.validateToken(token)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
-        
+
         String username = jwtUtil.getUsernameFromToken(token);
         UserModel user = userService.findByUsername(username);
-        
+
         TaskModel createdTask = taskService.save(taskDto, user);
-        
+
         TaskResponseDto responseDto = new TaskResponseDto(createdTask);
-        
+
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
     }
-    
+
     @GetMapping
-    public ResponseEntity<List<TaskResponseDto>> getAllTasks(@RequestHeader("Authorization") String authorizationHeader) {
+    public ResponseEntity<List<TaskResponseDto>> getAllTasks(
+            @RequestHeader("Authorization") String authorizationHeader,
+            @RequestParam(required = false) StatusEnum status,
+            @RequestParam(required = false) PriorityEnum priority,
+            @RequestParam(required = false) LocalDate expirationDate) {
+
         String token = authorizationHeader.replace("Bearer ", "");
-        
+
         if (!jwtUtil.validateToken(token)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
@@ -62,7 +70,8 @@ public class TaskController {
         String username = jwtUtil.getUsernameFromToken(token);
         UserModel user = userService.findByUsername(username);
 
-        List<TaskModel> tasks = taskService.findAllByUser(user);
+        // O TaskService agora lida com todos os casos, com ou sem filtros.
+        List<TaskModel> tasks = taskService.findByUserWithFilters(user, status, priority, expirationDate);
         
         List<TaskResponseDto> taskResponseDtos = tasks.stream()
                 .map(TaskResponseDto::new)

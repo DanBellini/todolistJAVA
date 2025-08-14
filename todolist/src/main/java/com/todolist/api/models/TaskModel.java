@@ -10,6 +10,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -67,5 +68,5 @@ public class TaskModel {
 
     @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @JsonManagedReference
-    private List<SubtaskModel> subtasks;
+    private List<SubtaskModel> subtasks = new ArrayList<>();
 }

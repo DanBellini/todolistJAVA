@@ -4,16 +4,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.todolist.api.dtos.TaskDto;
 import com.todolist.api.enums.PriorityEnum;
 import com.todolist.api.enums.StatusEnum;
-import com.todolist.api.models.SubtaskModel; // Novo import
+import com.todolist.api.models.SubtaskModel;
 import com.todolist.api.models.TaskModel;
 import com.todolist.api.models.UserModel;
 import com.todolist.api.security.JwtUtil;
 import com.todolist.api.security.SecurityTestConfig;
 import com.todolist.api.services.UserService;
 import com.todolist.api.services.task.TaskService;
-
 import lombok.RequiredArgsConstructor;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -27,6 +25,7 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -116,7 +115,27 @@ class TaskControllerTest {
         verify(userService, never()).findByUsername(anyString());
         verify(taskService, never()).save(any(TaskDto.class), any(UserModel.class));
     }
+    
+    @Test
+    void whenInvalidToken_thenGetAllTasksReturnsUnauthorized() throws Exception {
+        // Mock data
+        String mockToken = "Bearer invalid_token";
 
+        // Mockito: Retorna 'false' para simular um token inválido
+        when(jwtUtil.validateToken(anyString())).thenReturn(false);
+
+        // Simulação da requisição GET
+        mockMvc.perform(get("/tasks")
+                        .header("Authorization", mockToken)
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isUnauthorized());
+
+        // Verificação: Garante que a lógica de negócio não foi executada
+        verify(jwtUtil, times(1)).validateToken("invalid_token");
+        verify(taskService, never()).findAllByUser(any(UserModel.class));
+    }
+    
+    // --- NOVO TESTE para o caso onde não há filtros ---
     @Test
     void whenValidToken_thenGetAllTasksSuccessfully() throws Exception {
         // Mock data
@@ -147,11 +166,19 @@ class TaskControllerTest {
         // Associa a subtask à task
         taskWithSubtasks.setSubtasks(List.of(subtask));
 
-        // Configura o mock para retornar a lista de tasks com subtasks
+        // Configura o mock para retornar a lista de tasks com subtasks usando o novo método de filtro
         when(jwtUtil.validateToken(anyString())).thenReturn(true);
         when(jwtUtil.getUsernameFromToken(anyString())).thenReturn(mockUsername);
         when(userService.findByUsername(mockUsername)).thenReturn(mockUser);
-        when(taskService.findAllByUser(any(UserModel.class))).thenReturn(List.of(taskWithSubtasks));
+        
+        // ATENÇÃO: AQUI ESTÁ A MUDANÇA
+        // Mockamos o findByUserWithFilters para o caso de não haver filtros (parâmetros null)
+        when(taskService.findByUserWithFilters(
+                any(UserModel.class),
+                isNull(),
+                isNull(),
+                isNull()
+        )).thenReturn(List.of(taskWithSubtasks));
 
         // Simulação da requisição GET e verificação
         mockMvc.perform(get("/tasks")
@@ -165,25 +192,13 @@ class TaskControllerTest {
 
         // Verificação: Garante que os métodos de serviço foram chamados
         verify(jwtUtil, times(1)).validateToken("valid_token");
-        verify(taskService, times(1)).findAllByUser(any(UserModel.class));
-    }
-    
-    @Test
-    void whenInvalidToken_thenGetAllTasksReturnsUnauthorized() throws Exception {
-        // Mock data
-        String mockToken = "Bearer invalid_token";
-
-        // Mockito: Retorna 'false' para simular um token inválido
-        when(jwtUtil.validateToken(anyString())).thenReturn(false);
-
-        // Simulação da requisição GET
-        mockMvc.perform(get("/tasks")
-                        .header("Authorization", mockToken)
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isUnauthorized());
-
-        // Verificação: Garante que a lógica de negócio não foi executada
-        verify(jwtUtil, times(1)).validateToken("invalid_token");
-        verify(taskService, never()).findAllByUser(any(UserModel.class));
+        // ATENÇÃO: AQUI ESTÁ A MUDANÇA
+        // Verifica se o método correto foi chamado
+        verify(taskService, times(1)).findByUserWithFilters(
+                any(UserModel.class),
+                isNull(),
+                isNull(),
+                isNull()
+        );
     }
 }
