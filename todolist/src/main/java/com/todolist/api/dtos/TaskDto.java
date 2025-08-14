@@ -24,9 +24,6 @@ public class TaskDto {
     @NotNull(message = "ExpirationDate cannot be blank.")
     private LocalDate expirationDate;
 
-    @NotNull(message = "Status cannot be blank.")
     private StatusEnum status;
-
-    @NotNull(message = "Priority cannot be blank.")
     private PriorityEnum priority;
 }

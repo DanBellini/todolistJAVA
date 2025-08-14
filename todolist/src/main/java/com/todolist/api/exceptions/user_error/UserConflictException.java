@@ -1,4 +1,4 @@
-package com.todolist.api.excepitions.user_error;
+package com.todolist.api.exceptions.user_error;
 
     public class UserConflictException extends RuntimeException{
 

@@ -1,8 +1,8 @@
 package com.todolist.api.services;
 
 import com.todolist.api.dtos.UserDto;
-import com.todolist.api.excepitions.user_error.UserConflictException;
-import com.todolist.api.excepitions.user_error.UserNotFoundException;
+import com.todolist.api.exceptions.user_error.UserConflictException;
+import com.todolist.api.exceptions.user_error.UserNotFoundException;
 import com.todolist.api.models.UserModel;
 import com.todolist.api.repositories.UserRepository;
 import org.junit.jupiter.api.BeforeEach;

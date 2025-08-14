@@ -2,7 +2,7 @@ package com.todolist.api.controllers;
 
 import com.todolist.api.dtos.LoginDto;
 import com.todolist.api.dtos.UserDto;
-import com.todolist.api.excepitions.user_error.UserNotFoundException;
+import com.todolist.api.exceptions.user_error.UserNotFoundException;
 import com.todolist.api.models.UserModel;
 import com.todolist.api.security.JwtUtil;
 import com.todolist.api.services.UserService;

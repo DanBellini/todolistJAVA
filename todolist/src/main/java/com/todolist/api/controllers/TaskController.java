@@ -1,18 +1,23 @@
 package com.todolist.api.controllers;
 
 import com.todolist.api.dtos.TaskDto;
+import com.todolist.api.dtos.responses.TaskResponseDto;
 import com.todolist.api.models.TaskModel;
 import com.todolist.api.models.UserModel;
 import com.todolist.api.security.JwtUtil;
-import com.todolist.api.services.task.TaskService;
 import com.todolist.api.services.UserService;
+import com.todolist.api.services.task.TaskService;
+
 import jakarta.validation.Valid;
+
+import java.util.List;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/tasks") // A rota base para este controller deve ser "/tasks"
+@RequestMapping("/tasks")
 public class TaskController {
 
     private final TaskService taskService;
@@ -26,31 +31,43 @@ public class TaskController {
     }
 
     @PostMapping
-    public ResponseEntity<TaskModel> createTask(
+    public ResponseEntity<TaskResponseDto> createTask(
             @RequestHeader("Authorization") String authorizationHeader,
             @RequestBody @Valid TaskDto taskDto) {
 
-        // 1. Extrair o token do cabeçalho "Bearer "
         String token = authorizationHeader.replace("Bearer ", "");
 
-        // 2. **Middleware de Validação**: Validar o token
         if (!jwtUtil.validateToken(token)) {
-            // Se o token for inválido, retorna 401 Unauthorized imediatamente
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        
+        String username = jwtUtil.getUsernameFromToken(token);
+        UserModel user = userService.findByUsername(username);
+        
+        TaskModel createdTask = taskService.save(taskDto, user);
+        
+        TaskResponseDto responseDto = new TaskResponseDto(createdTask);
+        
+        return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
+    }
+    
+    @GetMapping
+    public ResponseEntity<List<TaskResponseDto>> getAllTasks(@RequestHeader("Authorization") String authorizationHeader) {
+        String token = authorizationHeader.replace("Bearer ", "");
+        
+        if (!jwtUtil.validateToken(token)) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        // 3. **Lógica de Negócio**: Se o token for válido, prosseguir com a criação da tarefa
-        
-        // Pega o nome de usuário do token
-        // Você vai precisar de um novo método no seu JwtUtil para extrair o username do token
         String username = jwtUtil.getUsernameFromToken(token);
-        
-        // Busca o UserModel pelo nome de usuário
         UserModel user = userService.findByUsername(username);
+
+        List<TaskModel> tasks = taskService.findAllByUser(user);
         
-        // Chama o serviço para salvar a nova tarefa
-        TaskModel createdTask = taskService.save(taskDto, user);
-        
-        return ResponseEntity.status(HttpStatus.CREATED).body(createdTask);
+        List<TaskResponseDto> taskResponseDtos = tasks.stream()
+                .map(TaskResponseDto::new)
+                .toList();
+
+        return ResponseEntity.ok(taskResponseDtos);
     }
 }

@@ -30,7 +30,7 @@ public class UserModel {
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
 
-    @Column(length = 20, nullable = false)
+    @Column(unique = true, length = 20, nullable = false)
     private String username;
 
     @Column(length = 150, nullable = false)

@@ -14,9 +14,9 @@ import java.time.LocalDate;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
 @Entity
 @Table(name = "subtasks")
+@Builder
 public class SubtaskModel {
     
     public SubtaskModel(SubtaskDto dto, UserModel user, TaskModel task) {
@@ -54,7 +54,7 @@ public class SubtaskModel {
     @JoinColumn(name = "user_id", nullable = false)
     private UserModel user;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "task_id", nullable = false)
     private TaskModel task;
 }

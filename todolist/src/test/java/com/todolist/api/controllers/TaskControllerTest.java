@@ -8,8 +8,11 @@ import com.todolist.api.models.TaskModel;
 import com.todolist.api.models.UserModel;
 import com.todolist.api.security.JwtUtil;
 import com.todolist.api.security.SecurityTestConfig;
-import com.todolist.api.services.task.TaskService;
 import com.todolist.api.services.UserService;
+import com.todolist.api.services.task.TaskService;
+
+import lombok.RequiredArgsConstructor;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -28,6 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(TaskController.class)
 @Import(SecurityTestConfig.class) 
+@RequiredArgsConstructor
 class TaskControllerTest {
 
     @Autowired
