@@ -1,6 +1,6 @@
 package com.todolist.api.models;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import com.todolist.api.dtos.TaskDto;
 import com.todolist.api.enums.PriorityEnum;
 import com.todolist.api.enums.StatusEnum;
@@ -61,11 +61,11 @@ public class TaskModel {
     @Enumerated(EnumType.STRING)
     private PriorityEnum priority;
 
-    @JsonIgnore
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private UserModel user;
 
-    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private List<SubtaskModel> subtasks;
 }

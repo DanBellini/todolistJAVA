@@ -1,5 +1,6 @@
 package com.todolist.api.models;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.todolist.api.dtos.SubtaskDto;
 import com.todolist.api.enums.PriorityEnum;
 import com.todolist.api.enums.StatusEnum;
@@ -10,6 +11,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.Objects;
 
 @Data
 @NoArgsConstructor
@@ -19,14 +21,27 @@ import java.time.LocalDate;
 @Builder
 public class SubtaskModel {
     
-    public SubtaskModel(SubtaskDto dto, UserModel user, TaskModel task) {
+    public SubtaskModel(SubtaskDto dto, TaskModel task) {
         this.title = dto.getTitle();
         this.description = dto.getDescription();
         this.expirationDate = dto.getExpirationDate();
         this.status = dto.getStatus();
         this.priority = dto.getPriority();
-        this.user = user;
         this.task = task;
+
+        //Logica para Status
+        if (dto.getStatus() == null || Objects.equals(dto.getStatus().name(), "")) {
+            this.status = StatusEnum.NAO_REALIZADA;
+        } else {
+            this.status = dto.getStatus();
+        }
+
+        // Lógica para priority
+        if (dto.getPriority() == null || Objects.equals(dto.getPriority().name(), "")) {
+            this.priority = PriorityEnum.ALTA;
+        } else {
+            this.priority = dto.getPriority();
+        }
     }
 
     @Id
@@ -39,22 +54,16 @@ public class SubtaskModel {
     @Column(nullable = false)
     private String description;
 
-    @Column(nullable = false)
     private LocalDate expirationDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private StatusEnum status;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private PriorityEnum priority;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private UserModel user;
 
     @ManyToOne
     @JoinColumn(name = "task_id", nullable = false)
+    @JsonBackReference
     private TaskModel task;
 }

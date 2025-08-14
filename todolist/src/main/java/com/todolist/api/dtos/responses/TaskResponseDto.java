@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -20,6 +21,7 @@ public class TaskResponseDto {
     private StatusEnum status;
     private PriorityEnum priority;
     private UserResponseDto user;
+    private List<SubtaskResponseDto> subtasks;
 
     // Construtor para converter de TaskModel para TaskResponseDto
     public TaskResponseDto(TaskModel task) {
@@ -30,5 +32,8 @@ public class TaskResponseDto {
         this.status = task.getStatus();
         this.priority = task.getPriority();
         this.user = new UserResponseDto(task.getUser());
+        this.subtasks = task.getSubtasks().stream()
+                .map(SubtaskResponseDto::new)
+                .toList();
     }
 }

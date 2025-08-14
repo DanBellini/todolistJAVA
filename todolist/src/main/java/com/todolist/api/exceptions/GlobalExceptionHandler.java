@@ -75,7 +75,7 @@ public class GlobalExceptionHandler {
             message = "Invalid field format: " + ex.getMessage();
         }
 
-        body.put("error", "Invalid Request");
+        body.put("error", "Invalid");
         body.put("message", message);
         return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
     }

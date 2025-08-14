@@ -7,9 +7,7 @@ import com.todolist.api.models.TaskModel;
 import com.todolist.api.models.UserModel;
 import com.todolist.api.repositories.SubtaskRepository;
 import com.todolist.api.repositories.TaskRepository;
-
 import lombok.RequiredArgsConstructor;
-
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,15 +17,20 @@ public class SubtaskService {
     private final SubtaskRepository subtaskRepository;
     private final TaskRepository taskRepository;
 
-    public SubtaskModel save(SubtaskDto subtaskDto, UserModel user, Long taskId) {
-        // Encontra a TaskModel pelo ID. Se não encontrar, lança uma exceção.
+    public SubtaskModel createSubtask(Long taskId, SubtaskDto subtaskDto, UserModel authenticatedUser) {
+        // Encontra a tarefa pai, ou lança uma exceção se não for encontrada
         TaskModel task = taskRepository.findById(taskId)
-                .orElseThrow(() -> new TaskNotFoundException("Task not found with ID: " + taskId));
+                .orElseThrow(() -> new TaskNotFoundException("Task not found with id: " + taskId));
+
+        // Valida se o usuário autenticado é o dono da tarefa
+        if (!task.getUser().getId().equals(authenticatedUser.getId())) {
+            throw new IllegalArgumentException("User is not authorized to create subtasks for this task.");
+        }
+
+        // Cria a nova subtask
+        SubtaskModel subtask = new SubtaskModel(subtaskDto, task);
         
-        // Cria uma nova SubtaskModel com base no DTO, no usuário e na tarefa.
-        SubtaskModel newSubtask = new SubtaskModel(subtaskDto, user, task);
-        
-        // Salva a nova subtask no banco de dados.
-        return subtaskRepository.save(newSubtask);
+        // Salva a subtask no banco de dados
+        return subtaskRepository.save(subtask);
     }
 }
